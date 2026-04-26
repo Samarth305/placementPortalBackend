@@ -1,0 +1,61 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Student{
+  studentId String @id @default(ulid())
+  name String
+  email String @unique
+  cgpa Float
+  password String
+  institute String
+  dept String
+  resumeUrl String?
+  createdAt DateTime @default(now())
+
+  applications Application[]
+}
+
+model Company{
+  companyId String @id @default(ulid())
+  name String
+  location String?
+  description String?
+  password String
+
+  jobs Job[]
+}
+
+model Job{
+  jobId String @id @default(ulid())
+  role String
+  jdUrl String
+  ctc Float
+  deadline DateTime
+  createdAt DateTime @default(now())
+
+  companyId String
+  company Company @relation(fields: [companyId], references: [companyId])
+
+  applications Application[]
+}
+
+model Application{
+  applicationId String @id @default(ulid())
+  jobId String
+  studentId String
+  appliedAt DateTime @default(now())
+  status String @default("APPLIED")
+  student Student @relation(fields: [studentId],references: [studentId])
+  job Job @relation(fields: [jobId],references: [jobId])
+  @@unique([jobId,studentId])
+}
