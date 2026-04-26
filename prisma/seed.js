@@ -1,13 +1,11 @@
 require('dotenv').config();
-console.log("ENV:", process.env.DATABASE_URL);
+// console.log("ENV:", process.env.DATABASE_URL);
 const { PrismaClient } = require('@prisma/client');
 const { PrismaPg } = require('@prisma/adapter-pg');
-const adapter=new PrismaPg({
-    connectionString: process.env.DATABASE_URL,
-});
-const prisma = new PrismaClient({
-    adapter,
-});
+// const adapter=new PrismaPg({
+//     connectionString: process.env.DATABASE_URL,
+// });
+const prisma = new PrismaClient;
 
 async function main(params) {
     const company = await prisma.company.create({

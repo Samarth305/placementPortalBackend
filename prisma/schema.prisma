@@ -5,14 +5,16 @@
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
   provider = "prisma-client-js"
+  
 }
 
 model Student{
-  studentId String @id @default(ulid())
+  studentId String @id @default(uuid())
   name String
   email String @unique
   cgpa Float
@@ -26,7 +28,7 @@ model Student{
 }
 
 model Company{
-  companyId String @id @default(ulid())
+  companyId String @id @default(uuid())
   name String
   location String?
   description String?
@@ -36,7 +38,7 @@ model Company{
 }
 
 model Job{
-  jobId String @id @default(ulid())
+  jobId String @id @default(uuid())
   role String
   jdUrl String
   ctc Float
@@ -50,7 +52,7 @@ model Job{
 }
 
 model Application{
-  applicationId String @id @default(ulid())
+  applicationId String @id @default(uuid())
   jobId String
   studentId String
   appliedAt DateTime @default(now())
