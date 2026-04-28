@@ -33,6 +33,10 @@ model Company{
   location String?
   description String?
   password String
+  email String @unique
+
+  status String @default("PENDING")
+  createdAt DateTime @default(now())
 
   jobs Job[]
 }
@@ -60,4 +64,12 @@ model Application{
   student Student @relation(fields: [studentId],references: [studentId])
   job Job @relation(fields: [jobId],references: [jobId])
   @@unique([jobId,studentId])
+}
+
+model Admin{
+  adminId String @id @default(uuid())
+  name String
+  email String @unique
+  password String
+  createdAt DateTime @default(now())
 }
