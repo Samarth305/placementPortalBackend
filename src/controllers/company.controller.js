@@ -44,7 +44,7 @@ exports.companySignUp = async (req,res)=>{
 };
 
 //login
-exports.companyLogin = async (res,req)=>{
+exports.companyLogin = async (req,res)=>{
     try {
         const {email,password}=req.body;
 
@@ -75,7 +75,7 @@ exports.companyLogin = async (res,req)=>{
 
         //matched
         //company not approved
-        if(company.status=='APPLIED'){
+        if(company.status=='PENDING'){
             return res.status(403).json({
                 error:"company pending for approval"
             });
@@ -85,14 +85,56 @@ exports.companyLogin = async (res,req)=>{
         const token=jwt.sign(
             {
                 companyId:company.companyId,
-                role:"Company"
+                role:"company"
             },
             process.env.JWT_SECRET,
             {expiresIn:'1D'}
         );
+
+        res.json({
+            message: "company logged in" , token
+        });
     } catch (err) {
-        res.status(500).json({
+        return res.status(500).json({
             error:err.message
+        });
+    }
+};
+
+//post job opening
+exports.postJob = async (req,res) => {
+    try {
+        const companyId = req.user.companyId;
+        const {role , jdUrl , ctc , deadline} = req.body;
+
+        const company = await prisma.company.findUnique({
+            where:{
+                companyId
+            }
+        });
+
+        if(company.status!="APPROVED"){
+            return res.status(403).json({
+                error : "company not approved to post the job"
+            });
+        }
+
+        const job = await prisma.job.create({
+            data:{
+                role,
+                jdUrl,
+                ctc,
+                deadline : new Date(deadline),
+                companyId
+            }
+        });
+
+        res.json({
+            message: "jbo added successfully" , job
+        });
+    } catch (err) {
+        return res.status(500).json({
+            error: err.message
         });
     }
 };
