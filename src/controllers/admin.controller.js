@@ -96,7 +96,7 @@ exports.rejectCompany = async (req,res)=>{
 exports.approveCompany = async (req,res)=>{
     try {
         const {id}=req.params;
-        const changedCompany = await prisma.company.findMany({
+        const changedCompany = await prisma.company.update({
             where:{
                 companyId:id
             },
