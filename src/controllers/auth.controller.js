@@ -58,7 +58,10 @@ exports.login = async (req,res) =>{
         }
 
         const token=jwt.sign(
-            {userId:user.studentId},JWT_SECRET,
+            {
+                userId:user.studentId,
+                role:"student"
+            },JWT_SECRET,
             {expiresIn:"1d"}
         );
 

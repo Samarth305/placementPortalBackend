@@ -108,7 +108,7 @@ exports.approveCompany = async (req,res)=>{
             message:"approved the company" , changedCompany
         });
     } catch (err) {
-        return res.stauts(500).json({
+        return res.status(500).json({
             error:err.message
         });
     }
