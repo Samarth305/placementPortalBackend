@@ -59,20 +59,80 @@ exports.applyJob = async (req,res)=>{
 //get the list of jobs
 exports.getJobs = async (req,res)=>{
     try {
+        let {
+            page = 1,
+            limit = 10 ,
+            location , 
+            minCtc ,
+            search
+        } = req.query;
+
+        page = parseInt(page);
+        limit = parseInt(limit);
+
+        const skip = (page-1)*limit;
+
+        const where = {};
+        
+        //location filter
+        if(location){
+            where.company={
+                location:{
+                    contains : location,
+                    mode : "insensitive"
+                }
+            };
+        }
+
+        //min ctc
+        if(minCtc){
+            where.ctc={
+                gte:parseFloat(minCtc)
+            };
+        }
+
+        //role
+        if(search){
+            where.role = {
+                contains : search ,
+                mode : "insensitive"
+            };
+        }
+
         const jobs = await prisma.job.findMany({
+            where,
+            skip,
+            take:limit,
+
             include:{
                 company:{
                     select:{
                         name:true,
                         location:true
                     }
+                },
+
+                _count:{
+                    select:{
+                        applications:true
+                    }
                 }
             },
+
             orderBy:{
-                createdAt:'desc'
+                createdAt:"desc"
             }
         });
-        res.json(jobs);
+
+        const totalJobs = await prisma.job.count({where});
+
+        res.json({
+            page,
+            limit,
+            totalJobs,
+            totalPages:Math.ceil(totalJobs/limit),
+            jobs
+        });
     } catch (err) {
         res.status(500).json({
             error: err.message

@@ -61,6 +61,7 @@ model Application{
   studentId String
   appliedAt DateTime @default(now())
   status String @default("APPLIED")
+  createdAt DateTime @default(now())
   student Student @relation(fields: [studentId],references: [studentId])
   job Job @relation(fields: [jobId],references: [jobId])
   @@unique([jobId,studentId])
