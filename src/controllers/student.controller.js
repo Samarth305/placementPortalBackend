@@ -39,7 +39,7 @@ exports.updateProfile = async (req,res) => {
 };
 
 //view all applications
-exports.getApplications = async (req,res) => {
+exports.getMyApplications = async (req,res) => {
     try {
         const studentId = req.user.studentId;
 
