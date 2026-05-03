@@ -96,7 +96,7 @@ exports.rejectCompany = async (req,res)=>{
 exports.approveCompany = async (req,res)=>{
     try {
         const {id}=req.params;
-        const changedCompany = await prisma.company.findMany({
+        const changedCompany = await prisma.company.update({
             where:{
                 companyId:id
             },
@@ -110,6 +110,85 @@ exports.approveCompany = async (req,res)=>{
     } catch (err) {
         return res.status(500).json({
             error:err.message
+        });
+    }
+};
+
+//filter the company
+exports.getAllCompanies = async (req,res) => {
+    try {
+        const {status,search} = req.query;
+        const where = {};
+
+        //filter by status
+        if(status){
+            where.status = status;
+        }
+
+        //filter by name
+        if(search){
+            where.name = {
+                contains:search.toString(),
+                mode:"insensitive"
+            };
+        }
+
+        //get the companies
+        const companies = await prisma.company.findMany({
+            where,
+            orderBy:{
+                createdAt:'desc'
+            },
+            select:{
+                companyId:true,
+                name:true,
+                email:true,
+                location:true,
+                status:true,
+                createdAt:true
+            }
+        });
+
+        res.json({
+            totalCompanies:(await companies).length,
+            companies
+        });
+    } catch (err) {
+        return res.status(500).json({
+            error : err.message
+        });
+    }
+};
+
+//get the admin stats
+exports.getAdminStats = async (req,res) => {
+    try {
+        const totalStudents = await prisma.student.count();
+        const totalCompanies = await prisma.company.count();
+        const pendingCompanies = await prisma.company.count({
+            where:{
+                status:"PENDING"
+            }
+        });
+        const approvedCompanies = await prisma.company.count({
+            where:{
+                status:"APPROVED"
+            }
+        });
+        const totalJobs = await prisma.job.count();
+        const totalApplications = await prisma.application.count();
+
+        res.json({
+            totalStudents,
+            totalCompanies,
+            pendingCompanies,
+            approvedCompanies,
+            totalJobs,
+            totalApplications
+        });
+    } catch (err) {
+        return res.status(500).json({
+            error: err.message
         });
     }
 };

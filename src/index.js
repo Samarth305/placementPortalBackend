@@ -6,11 +6,13 @@ app.use(cors());
 app.use(express.json());
 
 const authRoutes = require('./routes/auth.routes');
+const studentRoutes = require('./routes/student.routes');
 const jobRoutes=require('./routes/job.routes');
 const companyRoutes=require('./routes/company.routes');
 const adminRoutes=require('./routes/admin.routes');
 
 app.use('/api/auth',authRoutes);
+app.use('/api/student',studentRoutes);
 app.use('/api/jobs',jobRoutes);
 app.use('/api/company',companyRoutes);
 app.use('/api/admin',adminRoutes);
