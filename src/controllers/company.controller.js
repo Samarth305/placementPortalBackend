@@ -92,7 +92,7 @@ exports.companyLogin = async (req,res)=>{
         );
 
         res.json({
-            message: "company logged in" , token
+            message: "company logged in" , token , role:"company"
         });
     } catch (err) {
         return res.status(500).json({

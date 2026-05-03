@@ -40,7 +40,7 @@ exports.adminLogin = async (req,res)=>{
         );
 
         res.json({
-            message:"admin successfully loged in",token
+            message:"admin successfully loged in",token, role : "admin"
         });
     } catch (err) {
         return res.status(500).json({
