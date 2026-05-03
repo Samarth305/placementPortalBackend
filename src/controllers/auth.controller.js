@@ -7,7 +7,6 @@ const jwt = require('jsonwebtoken');
 const JWT_SECRET=process.env.JWT_SECRET;
 
 //signup
-
 exports.signup = async(req,res)=>{
     try {
         const{name,email,password,cgpa,institute,dept}=req.body;
@@ -34,7 +33,6 @@ exports.signup = async(req,res)=>{
 };
 
 //login
-
 exports.login = async (req,res) =>{
     try {
         const{email,password}=req.body;
@@ -68,5 +66,88 @@ exports.login = async (req,res) =>{
         res.json({message:"Login Successful",token});
     } catch (err) {
         res.status(500).json({error:err.message});
+    }
+};
+
+//change password
+exports.changePassword = async(req,res) => {
+    try {
+        console.log(req.user);
+        console.log(req.body);
+        const {oldPassword , newPassword} = req.body;
+        const user = req.user;
+
+        let extinguisher;
+
+        if(user.role==='student'){
+            extinguisher = await prisma.student.findUnique({
+                where:{
+                    studentId : user.userId
+                }
+            });
+        }
+
+        if(user.role==='company'){
+            extinguisher = await prisma.company.findUnique({
+                where:{
+                    companyId:user.companyId
+                }
+            });
+        }
+
+        if(user.role==='admin'){
+            extinguisher = await prisma.company.findUnique({
+                where:{
+                    companyId:user.companyId
+                }
+            });
+        }
+
+        //no such user found
+        if(!extinguisher){
+            return res.status(404).json({
+                message:"User Not Found"
+            });
+        }
+
+        //check if the oldpassword is same as the current password
+        const compare = await bcrypt.compare(oldPassword,extinguisher.password);
+        if(!compare){
+            return res.status(400).json({
+                error:"Incorrect Old Password"
+            });
+        }
+
+        //update the current password with new password
+        const newHashedPassword = await bcrypt.hash(newPassword,10);
+
+        if (user.role === "student") {
+            await prisma.student.update({
+                where: { studentId: user.userId },
+                data: { password: newHashedPassword },
+            });
+        }
+
+        if (user.role === "company") {
+            await prisma.company.update({
+                where: { companyId: user.companyId },
+                data: { password: newHashedPassword },
+            });
+        }
+
+        if (user.role === "admin") {
+            await prisma.admin.update({
+                where: { adminId: user.adminId },
+                data: { password: newHashedPassword },
+            });
+        }
+
+        res.json({
+            message: "Password changed successfully",
+        });
+    } catch (err) {
+        return res.status(500).json({
+            error:err.message
+        });
     }
 };
