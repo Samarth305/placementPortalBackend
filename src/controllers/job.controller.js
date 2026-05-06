@@ -164,7 +164,7 @@ exports.getMyApplications = async (req,res)=>{
                 appliedAt:'desc'
             }
         });
-        res.json(applications);
+        res.json({ applications });
     } catch (err) {
         return res.status(500).json({
             error:err.message
