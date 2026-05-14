@@ -3,134 +3,144 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 //signup
-exports.companySignUp = async (req,res)=>{
+exports.companySignUp = async (req, res) => {
     try {
-        const {name,email,password,location,description} = req.body;
-        
+        const { name, email, password, location, description } = req.body;
+
+        email = email.toLowerCase();
+
         //check if already existing
-        const existing= await prisma.company.findUnique({
-            where:{
-                email
+        const existing = await prisma.company.findUnique({
+            where: {
+                email:email
             }
         });
 
-        if(existing){
+        if (existing) {
             return res.status(400).json({
-                error:"company already exists"
+                error: "company already exists"
             });
         }
 
-        const hashedPassword = await bcrypt.hash(password,10);
+        const hashedPassword = await bcrypt.hash(password, 10);
 
         const company = await prisma.company.create({
-            data:{
+            data: {
                 name,
                 email,
-                password:hashedPassword,
+                password: hashedPassword,
                 location,
                 description
             }
         });
 
         res.json({
-            message:"company signup successful , wait for admin approval",company
+            message: "company signup successful , wait for admin approval", company
         });
 
     } catch (err) {
         res.status(500).json({
-            error:err.message
+            error: err.message
         });
     }
 };
 
 //login
-exports.companyLogin = async (req,res)=>{
+exports.companyLogin = async (req, res) => {
     try {
-        const {email,password}=req.body;
+        const { email, password } = req.body;
+
+        email = email.toLowerCase();
 
         //check if company exists
         const company = await prisma.company.findUnique({
-            where:{
-                email
+            where: {
+                email:email
             }
         });
 
         //not found
-        if(!company){
+        if (!company) {
             return res.status(404).json({
-                message:"company not found"
+                message: "company not found"
             });
         }
 
         //found
         //check for password
-        const match = await bcrypt.compare(password,company.password);
+        const match = await bcrypt.compare(password, company.password);
 
         //not matched
-        if(!match){
+        if (!match) {
             return res.status(400).json({
-                message:"incorrect password"
+                message: "incorrect password"
             });
         }
 
         //matched
         //company not approved
-        if(company.status=='PENDING'){
+        if (company.status == 'PENDING') {
             return res.status(403).json({
-                error:"company pending for approval"
+                error: "company pending for approval"
             });
         }
 
         //company approved
-        const token=jwt.sign(
+        const token = jwt.sign(
             {
-                companyId:company.companyId,
-                role:"company"
+                companyId: company.companyId,
+                role: "company"
             },
             process.env.JWT_SECRET,
-            {expiresIn:'1D'}
+            { expiresIn: '1D' }
         );
 
         res.json({
-            message: "company logged in" , token , role:"company"
+            message: "company logged in", token, role: "company"
         });
     } catch (err) {
         return res.status(500).json({
-            error:err.message
+            error: err.message
         });
     }
 };
 
 //post job opening
-exports.postJob = async (req,res) => {
+exports.postJob = async (req, res) => {
     try {
         const companyId = req.user.companyId;
-        const {role , jdUrl , ctc , deadline} = req.body;
+        const { role, jdUrl, ctc, deadline } = req.body;
 
         const company = await prisma.company.findUnique({
-            where:{
+            where: {
                 companyId
             }
         });
 
-        if(company.status!="APPROVED"){
+        if (!company) {
+            return res.status(404).json({
+                error: "company not foundd"
+            });
+        }
+
+        if (company.status != "APPROVED") {
             return res.status(403).json({
-                error : "company not approved to post the job"
+                error: "company not approved to post the job"
             });
         }
 
         const job = await prisma.job.create({
-            data:{
+            data: {
                 role,
                 jdUrl,
                 ctc,
-                deadline : new Date(deadline),
+                deadline: new Date(deadline),
                 companyId
             }
         });
 
         res.json({
-            message: "jbo added successfully" , job
+            message: "job added successfully", job
         });
     } catch (err) {
         return res.status(500).json({
@@ -140,190 +150,221 @@ exports.postJob = async (req,res) => {
 };
 
 //get the applicants list
-exports.getApplicants = async (req,res) => {
+exports.getApplicants = async (req, res) => {
     try {
-        const {jobId} = req.params;
+        const { jobId } = req.params;
         const companyId = req.user.companyId;
 
         //check if job exists
         const job = await prisma.job.findUnique({
-            where:{
+            where: {
                 jobId
             }
         });
 
-        if(!job){
+        if (!job) {
             return res.status(404).json({
-                error:"job not found"
+                error: "job not found"
             });
         }
 
         //does this job belong to the company accessing it ?
-        if(job.companyId!==companyId){
+        if (job.companyId !== companyId) {
             return res.status(403).json({
-                error:"Access Denied"
+                error: "Access Denied"
             });
         }
 
         //has access , now get the list of applicants
         const applicants = await prisma.application.findMany({
-            where:{
+            where: {
                 jobId
             },
-            include:{
-                student:{
+            include: {
+                student: {
+                    select: {
+                        studentId: true,
+                        name: true,
+                        email: true,
+                        cgpa: true,
+                        dept: true,
+                        institute: true,
+                        resumeUrl: true
+                    }
+                },
+                job:{
                     select:{
-                        studentId:true,
-                        name:true,
-                        email:true,
-                        cgpa:true,
-                        dept:true,
-                        institute:true,
-                        resumeUrl:true
+                        role:true
                     }
                 }
             },
-            orderBy:{
-                createdAt:'desc'
+            orderBy: {
+                createdAt: 'desc'
             }
         });
         res.json({
             jobId,
-            totalApplicants:applicants.length,
+            totalApplicants: applicants.length,
             applicants
         });
     } catch (err) {
         return res.status(500).json({
-            error:err.message
+            error: err.message
         });
     }
 };
 
 //get the jobs list
-exports.getMyJobs = async (req,res) => {
+exports.getMyJobs = async (req, res) => {
     try {
         //get the company id
         const companyId = req.user.companyId;
 
         //get the jobs
         const jobList = await prisma.job.findMany({
-            where:{
+            where: {
                 companyId
             },
-            include:{
-                _count:{
-                    select:{
-                        applications:true
+            include: {
+                _count: {
+                    select: {
+                        applications: true
                     }
                 }
             },
-            orderBy:{
-                createdAt:'desc'
+            orderBy: {
+                createdAt: 'desc'
             }
         });
         res.json({
-            totalJobs:jobList.length,
+            totalJobs: jobList.length,
             jobList
         });
     } catch (err) {
         return res.status(500).json({
-            error:err.message
+            error: err.message
         });
     }
 };
 
 //edit the job
-exports.editJob = async (req,res) => {
+exports.editJob = async (req, res) => {
     try {
         const companyId = req.user.companyId;
-        const {jobId} = req.params;
+        const { jobId } = req.params;
 
         //find the job
-        const {role , jobUrl , ctc , deadline} = req.body;
+        const { role, jobUrl, ctc, deadline } = req.body;
         const job = await prisma.job.findUnique({
-            where:{
+            where: {
                 jobId
             }
         });
 
         //job not found
-        if(!job){
+        if (!job) {
             return res.status(404).json({
-                error : "Job Not Found"
+                error: "Job Not Found"
             });
         }
 
         //does the job belong to requesting company ?
-        if(job.companyId!==companyId){
+        if (job.companyId !== companyId) {
             return res.status(404).json({
-                error : "Access Denied"
+                error: "Access Denied"
             });
         }
 
         //update that job
         const updatedJob = await prisma.job.update({
-            where:{
+            where: {
                 jobId
             },
-            data:{
+            data: {
                 role,
                 jdUrl,
                 ctc,
-                deadline : deadline ? new Date(deadline) : undefined
+                deadline: deadline ? new Date(deadline) : undefined
             }
         });
 
         res.json({
-            message : "Job Updated Succesfully",
+            message: "Job Updated Succesfully",
             updatedJob
         });
     } catch (err) {
         return res.status(500).json({
-            error : err.message
+            error: err.message
         });
     }
 };
 
 //delete the job
-exports.deleteJob = async (req,res) => {
+exports.deleteJob = async (req, res) => {
     try {
         const companyId = req.user.companyId;
-        const {jobId} = req.params;
+        const { jobId } = req.params;
 
         //find the job
         const job = await prisma.job.findUnique({
-            where:{
+            where: {
                 jobId
             }
         });
 
         //job not found
-        if(!job){
+        if (!job) {
             return res.status(404).json({
-                error : "Job Not Found"
+                error: "Job Not Found"
             });
         }
 
         //does the job belong to requesting company ?
-        if(job.companyId!==companyId){
+        if (job.companyId !== companyId) {
             return res.status(404).json({
-                error : "Access Denied"
+                error: "Access Denied"
             });
         }
 
         //delete the job
         await prisma.job.delete({
-            where:{
+            where: {
                 jobId
             }
         });
 
         res.json({
-            message : "Job Deleted Succesfully"
+            message: "Job Deleted Succesfully"
         });
     } catch (err) {
         return res.status(500).json({
-            error : err.message
+            error: err.message
         });
     }
 }
+
+//update the applicant's status
+exports.updateApplicantStatus = async (req, res) => {
+    try {
+        const { applicationId } = req.params;
+        const { status } = req.body;
+
+        //update the application status
+        const updateApplication = await prisma.application.update({
+            where:{
+                applicationId
+            },
+            data:{
+                status
+            }
+        });
+
+        return res.json({
+            message:"status updated succesfully" , updateApplication
+        });
+    } catch (err) {
+        return res.status(500).json({
+            error: err.message
+        });
+    }
+};

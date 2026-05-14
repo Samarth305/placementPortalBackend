@@ -12,6 +12,7 @@ async function main(params) {
         data:{
             name : "Google",
             location: "Bangalore",
+            email: "google@test.com",
             description: "Tech company",
             password: "hashedpassword123",
         }

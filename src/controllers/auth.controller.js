@@ -10,13 +10,16 @@ const JWT_SECRET=process.env.JWT_SECRET;
 exports.signup = async(req,res)=>{
     try {
         const{name,email,password,cgpa,institute,dept}=req.body;
+        
+        email = email.toLowerCase();
+        
         //hash password
         const hashedPassword=await bcrypt.hash(password,10);
 
         const user = await prisma.student.create({
             data:{
                 name,
-                email,
+                email:email,
                 password: hashedPassword,
                 cgpa,
                 institute,

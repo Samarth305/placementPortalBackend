@@ -60,7 +60,7 @@ model Application{
   jobId String
   studentId String
   appliedAt DateTime @default(now())
-  status String @default("APPLIED")
+  status ApplicationStatus @default(APPLIED)
   createdAt DateTime @default(now())
   student Student @relation(fields: [studentId],references: [studentId])
   job Job @relation(fields: [jobId],references: [jobId])
@@ -73,4 +73,12 @@ model Admin{
   email String @unique
   password String
   createdAt DateTime @default(now())
+}
+
+enum ApplicationStatus{
+  APPLIED
+  SHORTLISTED
+  INTERVIEW
+  REJECTED
+  OFFER
 }

@@ -6,10 +6,11 @@ const bcrypt = require('bcrypt');
 exports.adminLogin = async (req,res)=>{
     try {
         const {email,password} = req.body;
+        email = email.toLowerCase();
         //check if that admin is present
         const admin = await prisma.admin.findUnique({
             where:{
-                email
+                email:email
             }
         });
         //if not present
@@ -45,6 +46,49 @@ exports.adminLogin = async (req,res)=>{
     } catch (err) {
         return res.status(500).json({
             error:err.message
+        });
+    }
+};
+
+//signup
+exports.adminSignUp = async (req,res) => {
+    try {
+
+        const {name , email , password} = req.body;
+        email = email.toLowerCase();
+
+        //check if the email already exists
+        const emailExists = await prisma.admin.findUnique({
+            where:{
+                email:email
+            }
+        });
+
+        if(emailExists){
+            return res.status(400).json({
+                error: "admin already exists"
+            });
+        }
+
+        //does not exist
+        //hash the password
+        const hashedPassword = await bcrypt.hash(password,10);
+        //insert in the database
+        const admin = await prisma.admin.create({
+            data:{
+                name,
+                email,
+                password:hashedPassword
+            }
+        });
+
+        res.json({
+            message:"admin succesfully registered" , admin
+        });
+
+    } catch (err) {
+        return res.status(500).json({
+            error: err.message
         });
     }
 };
