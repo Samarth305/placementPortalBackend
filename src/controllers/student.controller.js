@@ -160,3 +160,38 @@ exports.uploadResume = async (req,res) => {
         });
     }
 };
+
+//get the profile data
+exports.getProfile = async (req,res) => {
+    try {
+        const studentid = req.user.userId;
+        const fetchedStudent = await prisma.student.findUnique({
+            where:{
+                studentId:studentid
+            },
+            select:{
+                studentId:true,
+                name:true,
+                email:true,
+                cgpa:true,
+                dept:true,
+                institute:true,
+                resumeUrl:true,
+                createdAt:true
+            }
+        });
+
+        if(!fetchedStudent){
+            return res.status(404).json({
+                error:"Student not found"
+            });
+        }
+
+        res.json(fetchedStudent);
+
+    } catch (err) {
+        return res.status(500).json({
+            error: err.message
+        });
+    }
+};

@@ -11,7 +11,7 @@ exports.signup = async(req,res)=>{
     try {
         const{name,email,password,cgpa,institute,dept}=req.body;
         
-        email = email.toLowerCase();
+        const emailLower = email.toLowerCase();
         
         //hash password
         const hashedPassword=await bcrypt.hash(password,10);
@@ -19,7 +19,7 @@ exports.signup = async(req,res)=>{
         const user = await prisma.student.create({
             data:{
                 name,
-                email:email,
+                email:emailLower,
                 password: hashedPassword,
                 cgpa,
                 institute,
@@ -39,9 +39,10 @@ exports.signup = async(req,res)=>{
 exports.login = async (req,res) =>{
     try {
         const{email,password}=req.body;
+        const emailLower = email.toLowerCase();
         
         const user= await prisma.student.findUnique({
-            where:{email},
+            where:{email:emailLower},
         });
 
         if(!user){
@@ -99,9 +100,9 @@ exports.changePassword = async(req,res) => {
         }
 
         if(user.role==='admin'){
-            extinguisher = await prisma.company.findUnique({
+            extinguisher = await prisma.admin.findUnique({
                 where:{
-                    companyId:user.companyId
+                    adminId:user.adminId
                 }
             });
         }

@@ -7,12 +7,12 @@ exports.companySignUp = async (req, res) => {
     try {
         const { name, email, password, location, description } = req.body;
 
-        email = email.toLowerCase();
+        const emailLower = email.toLowerCase();
 
         //check if already existing
         const existing = await prisma.company.findUnique({
             where: {
-                email:email
+                email:emailLower
             }
         });
 
@@ -27,7 +27,7 @@ exports.companySignUp = async (req, res) => {
         const company = await prisma.company.create({
             data: {
                 name,
-                email,
+                email:emailLower,
                 password: hashedPassword,
                 location,
                 description
@@ -50,12 +50,12 @@ exports.companyLogin = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        email = email.toLowerCase();
+        const emailLower = email.toLowerCase();
 
         //check if company exists
         const company = await prisma.company.findUnique({
             where: {
-                email:email
+                email:emailLower
             }
         });
 

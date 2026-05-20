@@ -6,11 +6,11 @@ const bcrypt = require('bcrypt');
 exports.adminLogin = async (req,res)=>{
     try {
         const {email,password} = req.body;
-        email = email.toLowerCase();
+        const emailLower = email.toLowerCase();
         //check if that admin is present
         const admin = await prisma.admin.findUnique({
             where:{
-                email:email
+                email: emailLower
             }
         });
         //if not present
@@ -55,12 +55,12 @@ exports.adminSignUp = async (req,res) => {
     try {
 
         const {name , email , password} = req.body;
-        email = email.toLowerCase();
+        const emailLower = email.toLowerCase();
 
         //check if the email already exists
         const emailExists = await prisma.admin.findUnique({
             where:{
-                email:email
+                email: emailLower
             }
         });
 
@@ -77,7 +77,7 @@ exports.adminSignUp = async (req,res) => {
         const admin = await prisma.admin.create({
             data:{
                 name,
-                email,
+                email:emailLower,
                 password:hashedPassword
             }
         });
@@ -112,9 +112,10 @@ exports.getPendingCompanies = async (req,res)=>{
 };
 
 //reject
-exports.rejectCompany = async (req,res)=>{
+exports.updateCompanyStatus = async (req,res)=>{
     try {
         const {id} = req.params;
+        const {status} = req.body;
 
         //change the status to rejected
         const changedCompany = await prisma.company.update({
@@ -122,12 +123,12 @@ exports.rejectCompany = async (req,res)=>{
                 companyId:id
             },
             data:{
-                status:"REJECTED"
+                status:status
             }
         });
 
         res.json({
-            message:"company status changed to rejected",changedCompany
+            message:`company status changed to ${status}`,changedCompany
         });
     } catch (err) {
         return res.status(500).json({
@@ -136,27 +137,27 @@ exports.rejectCompany = async (req,res)=>{
     }
 };
 
-//approve the company
-exports.approveCompany = async (req,res)=>{
-    try {
-        const {id}=req.params;
-        const changedCompany = await prisma.company.update({
-            where:{
-                companyId:id
-            },
-            data:{
-                status:"APPROVED"
-            }
-        });
-        res.json({
-            message:"approved the company" , changedCompany
-        });
-    } catch (err) {
-        return res.status(500).json({
-            error:err.message
-        });
-    }
-};
+// //approve the company
+// exports.approveCompany = async (req,res)=>{
+//     try {
+//         const {id}=req.params;
+//         const changedCompany = await prisma.company.update({
+//             where:{
+//                 companyId:id
+//             },
+//             data:{
+//                 status:"APPROVED"
+//             }
+//         });
+//         res.json({
+//             message:"approved the company" , changedCompany
+//         });
+//     } catch (err) {
+//         return res.status(500).json({
+//             error:err.message
+//         });
+//     }
+// };
 
 //filter the company
 exports.getAllCompanies = async (req,res) => {
