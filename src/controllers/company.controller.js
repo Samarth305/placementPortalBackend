@@ -356,8 +356,28 @@ exports.updateApplicantStatus = async (req, res) => {
             },
             data:{
                 status
+            },
+            include:{
+                job:{
+                    select:{
+                        role:true,
+                        company:{
+                            select:{
+                                name:true
+                            }
+                        }
+                    }
+                }
             }
         });
+
+        await prisma.notification.create({
+            data:{
+                title: "Application Update",
+                message: `Your application for ${updateApplication.job.role} at ${updateApplication.job.company.name} was moved to ${status}.`,
+                studentId: updateApplication.studentId
+            }
+        })
 
         return res.json({
             message:"status updated succesfully" , updateApplication
@@ -368,3 +388,45 @@ exports.updateApplicantStatus = async (req, res) => {
         });
     }
 };
+
+//get comapny dashboard
+exports.companyDashboard = async (req , res)=>{
+    try {
+    const companyId = req.user.companyId;
+    const openJobsCount = await prisma.job.count({
+        where: { companyId }
+    });
+    const totalApplicantsCount = await prisma.application.count({
+        where: { job: { companyId } }
+    });
+    const shortlistedCount = await prisma.application.count({
+            where: { 
+            job: { companyId },
+            status: "SHORTLISTED"
+        }
+    });
+    const recentApplicants = await prisma.application.findMany({
+        where: { job: { companyId } },
+        include: {
+            student: {
+                select: { name: true, email: true, cgpa: true, institute: true }
+            },
+            job: {
+                select: { role: true }
+            }
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 5
+    });
+    res.json({
+        openJobs: openJobsCount,
+        totalApplicants: totalApplicantsCount,
+        shortlisted: shortlistedCount,
+        recentApplicants
+    });
+    } catch (err) {
+        return res.status(500).json({
+            error:err.message
+        });
+    }
+}

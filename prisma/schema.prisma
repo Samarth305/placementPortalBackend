@@ -25,6 +25,7 @@ model Student{
   createdAt DateTime @default(now())
 
   applications Application[]
+  notifications Notification[]
 }
 
 model Company{
@@ -39,6 +40,7 @@ model Company{
   createdAt DateTime @default(now())
 
   jobs Job[]
+  notifications Notification[]
 }
 
 model Job{
@@ -73,6 +75,22 @@ model Admin{
   email String @unique
   password String
   createdAt DateTime @default(now())
+
+  notifications Notification[]
+}
+
+model Notification{
+  notificationId String @id @default(uuid())
+  title String
+  message String
+  isRead Boolean @default(false)
+  createdAt DateTime @default(now())
+  studentId String?
+  student Student? @relation(fields: [studentId], references: [studentId])
+  companyId String?
+  company Company? @relation(fields: [companyId], references: [companyId])
+  adminId String?
+  admin Admin? @relation(fields: [adminId],references: [adminId])
 }
 
 enum ApplicationStatus{

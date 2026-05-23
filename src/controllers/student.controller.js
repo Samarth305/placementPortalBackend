@@ -108,7 +108,7 @@ exports.getStudentDashboard = async (req,res) => {
             rejected
         });
     } catch (err) {
-        error : err.message;
+        return res.status(500).json({ error: err.message });
     }
 }
 
