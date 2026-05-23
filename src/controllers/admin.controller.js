@@ -1,6 +1,8 @@
 const prisma = require('../lib/prisma');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const { sendCompanyStatusEmail, sendAdminLoginAlert } = require('../lib/email.service');
+
 
 //login
 exports.adminLogin = async (req,res)=>{
@@ -39,6 +41,8 @@ exports.adminLogin = async (req,res)=>{
                 expiresIn:"1D"
             }
         );
+
+        sendAdminLoginAlert(admin.email, admin.name).catch(console.error);
 
         res.json({
             message:"admin successfully loged in",token, role : "admin"
@@ -126,6 +130,8 @@ exports.updateCompanyStatus = async (req,res)=>{
                 status:status
             }
         });
+
+        sendCompanyStatusEmail(changedCompany.email, changedCompany.name, status).catch(console.error);
 
         res.json({
             message:`company status changed to ${status}`,changedCompany
