@@ -2,12 +2,14 @@ require('dotenv').config();
 const cors = require("cors");
 const express = require ('express');
 const helmet = require('helmet');
+const morgan = require('morgan');
 const app=new express();
 app.use(cors());
 app.use(express.json());
 
 const {apiLimiter} = require('./middleware/rateLimiter.middleware');
 app.use(helmet());
+app.use(morgan('dev'));
 
 const authRoutes = require('./routes/auth.routes');
 const studentRoutes = require('./routes/student.routes');
