@@ -11,6 +11,8 @@ const jobRoutes=require('./routes/job.routes');
 const companyRoutes=require('./routes/company.routes');
 const adminRoutes=require('./routes/admin.routes');
 const notificationRoutes = require('./routes/notif.routes');
+require('./workers/email.worker');
+
 
 app.use('/api/auth',authRoutes);
 app.use('/api/student',studentRoutes);

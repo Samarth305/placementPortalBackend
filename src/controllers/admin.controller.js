@@ -1,7 +1,8 @@
 const prisma = require('../lib/prisma');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const { sendCompanyStatusEmail, sendAdminLoginAlert } = require('../lib/email.service');
+const { enqueueCompanyStatusEmail, enqueueAdminLoginEmail } = require('../queues/email.queue');
+
 
 
 //login
@@ -42,7 +43,8 @@ exports.adminLogin = async (req,res)=>{
             }
         );
 
-        sendAdminLoginAlert(admin.email, admin.name).catch(console.error);
+        enqueueAdminLoginEmail(admin.email, admin.name).catch(console.error);
+
 
         res.json({
             message:"admin successfully loged in",token, role : "admin"
@@ -131,7 +133,8 @@ exports.updateCompanyStatus = async (req,res)=>{
             }
         });
 
-        sendCompanyStatusEmail(changedCompany.email, changedCompany.name, status).catch(console.error);
+        enqueueCompanyStatusEmail(changedCompany.email, changedCompany.name, status).catch(console.error);
+
 
         res.json({
             message:`company status changed to ${status}`,changedCompany
@@ -229,13 +232,34 @@ exports.getAdminStats = async (req,res) => {
         const totalJobs = await prisma.job.count();
         const totalApplications = await prisma.application.count();
 
+        // Chart data for student signups over the last 6 months
+        const students = await prisma.student.findMany({ select: { createdAt: true } });
+        const chartData = [];
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date();
+            d.setMonth(d.getMonth() - i);
+            const m = monthNames[d.getMonth()];
+            const year = d.getFullYear();
+            const monthIndex = d.getMonth();
+            
+            const count = students.filter(s => {
+                const sDate = new Date(s.createdAt);
+                return sDate.getMonth() === monthIndex && sDate.getFullYear() === year;
+            }).length;
+            
+            chartData.push({ m, v: count });
+        }
+
         res.json({
             totalStudents,
             totalCompanies,
             pendingCompanies,
             approvedCompanies,
             totalJobs,
-            totalApplications
+            totalApplications,
+            chartData
         });
     } catch (err) {
         return res.status(500).json({
