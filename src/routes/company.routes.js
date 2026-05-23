@@ -4,9 +4,11 @@ const router=express.Router();
 const {companySignUp , companyLogin , postJob , getApplicants , getMyJobs , editJob , deleteJob , updateApplicantStatus , companyDashboard} = require('../controllers/company.controller');
 const authMiddleware = require('../middleware/auth.middleware');
 const roleMiddleware = require('../middleware/role.middleware');
+const validateRequest = require('../middleware/validateRequest');
+const { loginSchema, companySignupSchema } = require('../schemas/auth.schema');
 
-router.post('/login',companyLogin);
-router.post('/signup',companySignUp);
+router.post('/login', validateRequest(loginSchema), companyLogin);
+router.post('/signup', validateRequest(companySignupSchema), companySignUp);
 router.post('/jobs',authMiddleware,roleMiddleware('company'),postJob);
 router.get('/jobs/:jobId/applicants',authMiddleware,roleMiddleware('company'),getApplicants);
 router.get('/viewJobs',authMiddleware,roleMiddleware('company'),getMyJobs);
