@@ -7,9 +7,10 @@ const roleMiddleware = require('../middleware/role.middleware');
 const validateRequest = require('../middleware/validateRequest');
 const { loginSchema, companySignupSchema } = require('../schemas/auth.schema');
 const { postJobSchema, editJobSchema, updateApplicantStatusSchema } = require('../schemas/api.schema');
+const { loginLimiter } = require('../middleware/rateLimiter.middleware');
 
-router.post('/login', validateRequest(loginSchema), companyLogin);
-router.post('/signup', validateRequest(companySignupSchema), companySignUp);
+router.post('/login',loginLimiter, validateRequest(loginSchema), companyLogin);
+router.post('/signup',loginLimiter, validateRequest(companySignupSchema), companySignUp);
 router.post('/jobs',authMiddleware,roleMiddleware('company'), validateRequest(postJobSchema), postJob);
 router.get('/jobs/:jobId/applicants',authMiddleware,roleMiddleware('company'),getApplicants);
 router.get('/viewJobs',authMiddleware,roleMiddleware('company'),getMyJobs);

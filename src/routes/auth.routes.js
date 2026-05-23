@@ -6,8 +6,10 @@ const authMiddleware = require('../middleware/auth.middleware');
 const validateRequest = require('../middleware/validateRequest');
 const { loginSchema, studentSignupSchema, companySignupSchema, adminSignupSchema } = require('../schemas/auth.schema');
 const { changePasswordSchema } = require('../schemas/api.schema');
-router.post('/signup', validateRequest(studentSignupSchema), signup);
-router.post('/login', validateRequest(loginSchema), login);
+const { loginLimiter } = require('../middleware/rateLimiter.middleware');
+
+router.post('/signup',loginLimiter, validateRequest(studentSignupSchema), signup);
+router.post('/login', loginLimiter,validateRequest(loginSchema), login);
 router.patch('/change-password',authMiddleware, validateRequest(changePasswordSchema), changePassword);
 
 module.exports = router;

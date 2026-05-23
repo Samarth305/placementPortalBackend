@@ -1,9 +1,13 @@
 require('dotenv').config();
 const cors = require("cors");
 const express = require ('express');
+const helmet = require('helmet');
 const app=new express();
 app.use(cors());
 app.use(express.json());
+
+const {apiLimiter} = require('./middleware/rateLimiter.middleware');
+app.use(helmet());
 
 const authRoutes = require('./routes/auth.routes');
 const studentRoutes = require('./routes/student.routes');
@@ -14,6 +18,7 @@ const notificationRoutes = require('./routes/notif.routes');
 require('./workers/email.worker');
 const errorHandler = require('./middleware/error.middleware');
 
+app.use('/api', apiLimiter);
 app.use('/api/auth',authRoutes);
 app.use('/api/student',studentRoutes);
 app.use('/api/jobs',jobRoutes);
