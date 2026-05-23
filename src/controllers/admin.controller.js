@@ -2,8 +2,8 @@ const prisma = require('../lib/prisma');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const { enqueueCompanyStatusEmail, enqueueAdminLoginEmail } = require('../queues/email.queue');
-
-
+const asyncHandler = require('../utils/asyncHandler');
+const CustomError = require('../utils/CustomError');
 
 //login
 exports.adminLogin = async (req,res)=>{

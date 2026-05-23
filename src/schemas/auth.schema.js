@@ -18,13 +18,18 @@ exports.studentSignupSchema = z.object({
     password:z.string().min(6,{
         message:"password must be at least 6 characters long"
     }),
+    cgpa:z.number().min(0).max(10).or(z.string().transform(val => parseFloat(val))),
+    institute:z.string().min(2, { message: "Institute name is required" }),
+    dept:z.string().min(2, { message: "Department is required" }),
     phone:z.string().optional()
 });
 
 exports.companySignupSchema = z.object({
     name: z.string().min(2, { message: "Company name is required" }),
     email: z.string().email({ message: "Please provide a valid email address" }),
-    password: z.string().min(6, { message: "Password must be at least 6 characters long" })
+    password: z.string().min(6, { message: "Password must be at least 6 characters long" }),
+    location: z.string().optional(),
+    description: z.string().optional()
 });
 
 exports.adminSignupSchema = z.object({

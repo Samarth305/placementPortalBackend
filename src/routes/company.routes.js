@@ -6,14 +6,15 @@ const authMiddleware = require('../middleware/auth.middleware');
 const roleMiddleware = require('../middleware/role.middleware');
 const validateRequest = require('../middleware/validateRequest');
 const { loginSchema, companySignupSchema } = require('../schemas/auth.schema');
+const { postJobSchema, editJobSchema, updateApplicantStatusSchema } = require('../schemas/api.schema');
 
 router.post('/login', validateRequest(loginSchema), companyLogin);
 router.post('/signup', validateRequest(companySignupSchema), companySignUp);
-router.post('/jobs',authMiddleware,roleMiddleware('company'),postJob);
+router.post('/jobs',authMiddleware,roleMiddleware('company'), validateRequest(postJobSchema), postJob);
 router.get('/jobs/:jobId/applicants',authMiddleware,roleMiddleware('company'),getApplicants);
 router.get('/viewJobs',authMiddleware,roleMiddleware('company'),getMyJobs);
-router.patch('/jobs/:jobId',authMiddleware,roleMiddleware('company'),editJob);
-router.patch('/applications/:applicationId/status',authMiddleware,roleMiddleware('company'),updateApplicantStatus);
+router.patch('/jobs/:jobId',authMiddleware,roleMiddleware('company'), validateRequest(editJobSchema), editJob);
+router.patch('/applications/:applicationId/status',authMiddleware,roleMiddleware('company'), validateRequest(updateApplicantStatusSchema), updateApplicantStatus);
 router.get('/dashboard', authMiddleware, roleMiddleware('company'), companyDashboard);
 // router.delete('/jobs/:jobId',authMiddleware,roleMiddleware('company'),deleteJob);
 
