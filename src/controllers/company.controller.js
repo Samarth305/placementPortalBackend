@@ -1,6 +1,7 @@
 const prisma = require('../lib/prisma');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { generateAccessToken, generateRefreshToken } = require('../utils/token.utils');
 
 //signup
 exports.companySignUp = async (req, res) => {
@@ -86,17 +87,17 @@ exports.companyLogin = async (req, res) => {
         }
 
         //company approved
-        const token = jwt.sign(
-            {
-                companyId: company.companyId,
-                role: "company"
-            },
-            process.env.JWT_SECRET,
-            { expiresIn: '1D' }
-        );
+        const payload = { companyId: company.companyId, role: "company" };
+        
+        const accessToken = generateAccessToken(payload);
+        const refreshToken = generateRefreshToken(payload);
+        await prisma.company.update({
+            where: { companyId: company.companyId },
+            data: { refreshToken }
+        });
 
         res.json({
-            message: "company logged in", token, role: "company"
+            message: "company logged in", accessToken, refreshToken, role: "company"
         });
     } catch (err) {
         return res.status(500).json({

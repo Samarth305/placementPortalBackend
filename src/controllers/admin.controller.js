@@ -4,6 +4,8 @@ const bcrypt = require('bcrypt');
 const { enqueueCompanyStatusEmail, enqueueAdminLoginEmail } = require('../queues/email.queue');
 const asyncHandler = require('../utils/asyncHandler');
 const CustomError = require('../utils/CustomError');
+const { generateAccessToken, generateRefreshToken } = require('../utils/token.utils');
+const ExcelJS = require('exceljs');
 
 //login
 exports.adminLogin = async (req,res)=>{
@@ -32,22 +34,20 @@ exports.adminLogin = async (req,res)=>{
         }
         //if matches
         //create a session
-        const token = jwt.sign(
-            {
-                adminId:admin.adminId,
-                role:"admin"
-            },
-            process.env.JWT_SECRET,
-            {
-                expiresIn:"1D"
-            }
-        );
+        const payload = { adminId: admin.adminId, role: "admin" };
+        
+        const accessToken = generateAccessToken(payload);
+        const refreshToken = generateRefreshToken(payload);
+        await prisma.admin.update({
+            where: { adminId: admin.adminId },
+            data: { refreshToken }
+        });
 
         enqueueAdminLoginEmail(admin.email, admin.name).catch(console.error);
 
 
         res.json({
-            message:"admin successfully loged in",token, role : "admin"
+            message:"admin successfully loged in", accessToken, refreshToken, role : "admin"
         });
     } catch (err) {
         return res.status(500).json({
@@ -267,3 +267,53 @@ exports.getAdminStats = async (req,res) => {
         });
     }
 };
+
+exports.exportStudents = asyncHandler(async(req,res)=>{
+    const students = await prisma.student.findMany({
+        orderBy:{
+            createdAt:'desc'
+        }
+    });
+
+    if(!students || students.length === 0){
+        throw new CustomError("no students found to export",404);
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Students");
+    
+    worksheet.columns = [
+        { header: 'ID', key: 'studentId', width: 36 },
+        { header: 'Name', key: 'name', width: 25 },
+        { header: 'Email', key: 'email', width: 30 },
+        { header: 'CGPA', key: 'cgpa', width: 10 },
+        { header: 'Institute', key: 'institute', width: 30 },
+        { header: 'Department', key: 'dept', width: 20 },
+        { header: 'Registered On', key: 'createdAt', width: 20 }
+    ]
+
+    worksheet.getRow(1).font = { bold: true };
+
+    students.forEach((student) => {
+        worksheet.addRow({
+            studentId: student.studentId,
+            name: student.name,
+            email: student.email,
+            cgpa: student.cgpa,
+            institute: student.institute,
+            dept: student.dept,
+            createdAt: student.createdAt.toLocaleDateString()
+        });
+    });
+    res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+        'Content-Disposition',
+        'attachment; filename=' + 'students_export.xlsx'
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+});

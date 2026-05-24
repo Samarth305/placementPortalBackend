@@ -22,6 +22,7 @@ model Student{
   institute String
   dept String
   resumeUrl String?
+  refreshToken String?
   createdAt DateTime @default(now())
 
   applications Application[]
@@ -35,6 +36,7 @@ model Company{
   description String?
   password String
   email String @unique
+  refreshToken String?
 
   status String @default("PENDING")
   createdAt DateTime @default(now())
@@ -74,6 +76,7 @@ model Admin{
   name String
   email String @unique
   password String
+  refreshToken String?
   createdAt DateTime @default(now())
 
   notifications Notification[]

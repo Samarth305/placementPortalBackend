@@ -1,4 +1,5 @@
 require('dotenv').config();
+const { generateAccessToken, generateRefreshToken } = require('../utils/token.utils');
 
 const prisma = require('../lib/prisma');
 const bcrypt = require('bcrypt');
@@ -59,15 +60,17 @@ exports.login = async (req,res) =>{
             })
         }
 
-        const token=jwt.sign(
-            {
-                userId:user.studentId,
-                role:"student"
-            },JWT_SECRET,
-            {expiresIn:"1d"}
-        );
+        const payload = { userId: user.studentId, role: "student" };
+        
+        const accessToken = generateAccessToken(payload);
+        const refreshToken = generateRefreshToken(payload);
+        // Save the refresh token to the database securely
+        await prisma.student.update({
+            where: { studentId: user.studentId },
+            data: { refreshToken }
+        });
 
-        res.json({message:"Login Successful",token,role:"student"});
+        res.json({message:"Login Successful",accessToken,refreshToken,role:"student"});
     } catch (err) {
         res.status(500).json({error:err.message});
     }
@@ -153,5 +156,36 @@ exports.changePassword = async(req,res) => {
         return res.status(500).json({
             error:err.message
         });
+    }
+};
+
+exports.refreshToken = async (req, res) => {
+    try {
+        const { refreshToken } = req.body;
+        if (!refreshToken) return res.status(401).json({ error: "No refresh token provided" });
+
+        // Verify the token
+        const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+        
+        let user;
+        if (decoded.role === 'student') user = await prisma.student.findUnique({ where: { studentId: decoded.userId } });
+        if (decoded.role === 'company') user = await prisma.company.findUnique({ where: { companyId: decoded.companyId } }); 
+        if (decoded.role === 'admin') user = await prisma.admin.findUnique({ where: { adminId: decoded.adminId } }); 
+
+        // Check if user exists AND if the token matches the one in their database record
+        if (!user || user.refreshToken !== refreshToken) {
+            return res.status(403).json({ error: "Invalid refresh token" });
+        }
+
+        // Strip old expiry data and issue a fresh 15-minute Access Token
+        const newPayload = { ...decoded };
+        delete newPayload.iat;
+        delete newPayload.exp;
+        
+        const newAccessToken = generateAccessToken(newPayload);
+        res.json({ token: newAccessToken });
+
+    } catch (err) {
+        res.status(403).json({ error: "Refresh token expired or invalid" });
     }
 };
