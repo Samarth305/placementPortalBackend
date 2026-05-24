@@ -2,7 +2,6 @@ const prisma = require('../lib/prisma');
 const cloudinary = require ("../../config/cloudinary");
 const streamifier = require("streamifier");
 
-
 //update the profile
 exports.updateProfile = async (req,res) => {
     try {

@@ -6,6 +6,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const CustomError = require('../utils/CustomError');
 const { generateAccessToken, generateRefreshToken } = require('../utils/token.utils');
 const ExcelJS = require('exceljs');
+const redis = require('../lib/redis');
 
 //login
 exports.adminLogin = async (req,res)=>{
@@ -146,28 +147,6 @@ exports.updateCompanyStatus = async (req,res)=>{
     }
 };
 
-// //approve the company
-// exports.approveCompany = async (req,res)=>{
-//     try {
-//         const {id}=req.params;
-//         const changedCompany = await prisma.company.update({
-//             where:{
-//                 companyId:id
-//             },
-//             data:{
-//                 status:"APPROVED"
-//             }
-//         });
-//         res.json({
-//             message:"approved the company" , changedCompany
-//         });
-//     } catch (err) {
-//         return res.status(500).json({
-//             error:err.message
-//         });
-//     }
-// };
-
 //filter the company
 exports.getAllCompanies = async (req,res) => {
     try {
@@ -215,59 +194,68 @@ exports.getAllCompanies = async (req,res) => {
 };
 
 //get the admin stats
-exports.getAdminStats = async (req,res) => {
-    try {
-        const totalStudents = await prisma.student.count();
-        const totalCompanies = await prisma.company.count();
-        const pendingCompanies = await prisma.company.count({
-            where:{
-                status:"PENDING"
-            }
-        });
-        const approvedCompanies = await prisma.company.count({
-            where:{
-                status:"APPROVED"
-            }
-        });
-        const totalJobs = await prisma.job.count();
-        const totalApplications = await prisma.application.count();
+exports.getAdminStats = asyncHandler(async (req, res) => {
+    const cacheKey = 'admin:dashboard:stats';
 
-        // Chart data for student signups over the last 6 months
-        const students = await prisma.student.findMany({ select: { createdAt: true } });
-        const chartData = [];
-        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        
-        for (let i = 5; i >= 0; i--) {
-            const d = new Date();
-            d.setMonth(d.getMonth() - i);
-            const m = monthNames[d.getMonth()];
-            const year = d.getFullYear();
-            const monthIndex = d.getMonth();
-            
-            const count = students.filter(s => {
-                const sDate = new Date(s.createdAt);
-                return sDate.getMonth() === monthIndex && sDate.getFullYear() === year;
-            }).length;
-            
-            chartData.push({ m, v: count });
-        }
+    // 1. Check if we have valid data in Redis cache
+    const cachedStats = await redis.get(cacheKey);
 
-        res.json({
-            totalStudents,
-            totalCompanies,
-            pendingCompanies,
-            approvedCompanies,
-            totalJobs,
-            totalApplications,
-            chartData
-        });
-    } catch (err) {
-        return res.status(500).json({
-            error: err.message
-        });
+    if (cachedStats) {
+        console.log("⚡ Fetching Dashboard Stats from Redis Cache! (0 Database Queries)");
+        return res.json(JSON.parse(cachedStats));
     }
-};
 
+    console.log("🐌 Fetching Dashboard Stats from Postgres Database... (Running 6 Heavy Queries)");
+
+    // 2. Data not in cache, calculate everything from the database
+    const totalStudents = await prisma.student.count();
+    const totalCompanies = await prisma.company.count();
+    const pendingCompanies = await prisma.company.count({
+        where: { status: "PENDING" }
+    });
+    const approvedCompanies = await prisma.company.count({
+        where: { status: "APPROVED" }
+    });
+    const totalJobs = await prisma.job.count();
+    const totalApplications = await prisma.application.count();
+
+    // Chart data for student signups over the last 6 months
+    const students = await prisma.student.findMany({ select: { createdAt: true } });
+    const chartData = [];
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    
+    for (let i = 5; i >= 0; i--) {
+        const d = new Date();
+        d.setMonth(d.getMonth() - i);
+        const m = monthNames[d.getMonth()];
+        const year = d.getFullYear();
+        const monthIndex = d.getMonth();
+        
+        const count = students.filter(s => {
+            const sDate = new Date(s.createdAt);
+            return sDate.getMonth() === monthIndex && sDate.getFullYear() === year;
+        }).length;
+        
+        chartData.push({ m, v: count });
+    }
+
+    const responseData = {
+        totalStudents,
+        totalCompanies,
+        pendingCompanies,
+        approvedCompanies,
+        totalJobs,
+        totalApplications,
+        chartData
+    };
+
+    // 3. Save the result in Redis for 5 minutes (300 seconds)
+    await redis.setex(cacheKey, 300, JSON.stringify(responseData));
+
+    res.json(responseData);
+});
+
+//download student stats
 exports.exportStudents = asyncHandler(async(req,res)=>{
     const students = await prisma.student.findMany({
         orderBy:{
@@ -316,4 +304,4 @@ exports.exportStudents = asyncHandler(async(req,res)=>{
 
     await workbook.xlsx.write(res);
     res.end();
-});
+});
