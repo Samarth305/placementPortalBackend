@@ -1,8 +1,11 @@
 const Redis = require('ioredis');
 
-// Connect to your local Redis server. BullMQ requires maxRetriesPerRequest to be null
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
-    maxRetriesPerRequest: null
+const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+
+const redis = new Redis(redisUrl, {
+    maxRetriesPerRequest: null,
+    family: 0, // Helps resolve IPv4 vs IPv6 issues on some hostings
+    ...(redisUrl.startsWith('rediss://') ? { tls: { rejectUnauthorized: false } } : {})
 });
 
 redis.on('connect', () => {
