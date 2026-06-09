@@ -110,7 +110,7 @@ exports.companyLogin = async (req, res) => {
 exports.postJob = async (req, res) => {
     try {
         const companyId = req.user.companyId;
-        const { role, jdUrl, ctc, deadline } = req.body;
+        const { role, jdUrl, ctc, deadline, rounds } = req.body;
 
         const company = await prisma.company.findUnique({
             where: {
@@ -136,6 +136,7 @@ exports.postJob = async (req, res) => {
                 jdUrl,
                 ctc,
                 deadline: new Date(deadline),
+                rounds: rounds || [],
                 companyId
             }
         });
@@ -195,7 +196,8 @@ exports.getApplicants = async (req, res) => {
                 },
                 job:{
                     select:{
-                        role:true
+                        role:true,
+                        rounds:true
                     }
                 }
             },
@@ -387,6 +389,58 @@ exports.updateApplicantStatus = async (req, res) => {
         return res.status(500).json({
             error: err.message
         });
+    }
+};
+
+//advance the applicant to the next round
+exports.advanceApplicant = async (req, res) => {
+    try {
+        const { applicationId } = req.params;
+
+        const application = await prisma.application.findUnique({
+            where: { applicationId },
+            include: {
+                job: {
+                    select: { role: true, rounds: true, company: { select: { name: true } } }
+                }
+            }
+        });
+
+        if (!application) return res.status(404).json({ error: "Application not found" });
+
+        let newStatus = 'INTERVIEW';
+        let newRoundIndex = application.currentRoundIndex;
+
+        if (application.status === 'APPLIED' || application.status === 'SHORTLISTED') {
+            newStatus = 'INTERVIEW';
+            newRoundIndex = 0;
+        } else if (application.status === 'INTERVIEW') {
+            newRoundIndex += 1;
+            if (application.job.rounds && newRoundIndex >= application.job.rounds.length) {
+                newRoundIndex = application.job.rounds.length - 1;
+            }
+        }
+
+        const updateApplication = await prisma.application.update({
+            where: { applicationId },
+            data: { status: newStatus, currentRoundIndex: newRoundIndex }
+        });
+
+        const roundName = application.job.rounds && application.job.rounds.length > 0 
+            ? application.job.rounds[newRoundIndex] 
+            : `Round ${newRoundIndex + 1}`;
+
+        await prisma.notification.create({
+            data: {
+                title: "Advanced to Next Round",
+                message: `Congratulations! You have been moved to the ${roundName} for ${application.job.role} at ${application.job.company.name}.`,
+                studentId: application.studentId
+            }
+        });
+
+        return res.json({ message: "Advanced to next round", updateApplication });
+    } catch (err) {
+        return res.status(500).json({ error: err.message });
     }
 };
 

@@ -84,6 +84,14 @@ exports.getStudentDashboard = async (req,res) => {
         const totalApplications = await prisma.application.findMany({
             where:{
                 studentId
+            },
+            include: {
+                job: {
+                    select: { role: true, rounds: true, company: { select: { name: true } } }
+                }
+            },
+            orderBy: {
+                appliedAt: 'desc'
             }
         });
 

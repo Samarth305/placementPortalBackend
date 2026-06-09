@@ -4,19 +4,21 @@ const { z } = require("zod");
 exports.postJobSchema = z.object({
     role: z.string().min(2, { message: "Role is required" }),
     jdUrl: z.string().url({ message: "Valid Job Description URL is required" }).optional().or(z.literal('')),
-    ctc: z.string().min(1, { message: "CTC is required" }),
-    deadline: z.string().min(1, { message: "Deadline is required" })
+    ctc: z.number().or(z.string().min(1, { message: "CTC is required" })),
+    deadline: z.string().min(1, { message: "Deadline is required" }),
+    rounds: z.array(z.string()).optional()
 });
 
 exports.editJobSchema = z.object({
     role: z.string().min(2).optional(),
     jdUrl: z.string().url().optional().or(z.literal('')),
-    ctc: z.string().min(1).optional(),
-    deadline: z.string().optional()
+    ctc: z.number().or(z.string().min(1)).optional(),
+    deadline: z.string().optional(),
+    rounds: z.array(z.string()).optional()
 });
 
 exports.updateApplicantStatusSchema = z.object({
-    status: z.enum(["PENDING", "SHORTLISTED", "REJECTED", "HIRED"], { message: "Invalid applicant status" })
+    status: z.enum(["APPLIED", "SHORTLISTED", "INTERVIEW", "REJECTED", "OFFER"], { message: "Invalid applicant status" })
 });
 
 // Admin Schemas
