@@ -1,9 +1,5 @@
 const {Queue} = require("bullmq");
-
-const connection = {
-    host : 'localhost',
-    port:6379
-};
+const connection = require('../lib/redis');
 
 const emailqueue = new Queue('email-queue',{connection});
 

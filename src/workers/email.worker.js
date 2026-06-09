@@ -1,10 +1,6 @@
 const {Worker, tryCatch} = require('bullmq');
 const { sendAdminLoginAlert, sendCompanyStatusEmail } = require('../lib/email.service');
-
-const connection = {
-    host : "localhost",
-    port:6379
-};
+const connection = require('../lib/redis');
 
 const emailWorker = new Worker('email-queue',async (job) =>{
     console.log(`[Worker] Processing Job ${job.id} of type ${job.name}...`);
